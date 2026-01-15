@@ -1,0 +1,135 @@
+package doan;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.*;
+
+public class showtimepanel extends JPanel {
+    private Connection conn;
+    private CardLayout card;
+    private JPanel content;
+    private guest currentGuest;       // thêm guest
+    private bookingdao bookingDao;
+
+    public showtimepanel(Connection conn, CardLayout card, JPanel content,guest currentGuest,bookingdao bookingDao) {
+        this.conn = conn;
+        this.card = card;
+        this.content = content;
+        this.currentGuest=currentGuest;
+        this.bookingDao=bookingDao;
+        
+
+        setLayout(new BorderLayout());
+
+        // Menu trên cùng
+        add(buildMenuBar(), BorderLayout.NORTH);
+
+        // Tiêu đề + nút Return
+        JPanel header = new JPanel(new BorderLayout());
+        JLabel title = new JLabel("Danh sách tất cả suất chiếu", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 20));
+        JButton returnBtn = new JButton("Return");
+        returnBtn.addActionListener(e -> card.show(content, "guest_movie"));
+        header.add(returnBtn, BorderLayout.WEST);
+        header.add(title, BorderLayout.CENTER);
+        add(header, BorderLayout.SOUTH);
+
+        // Bảng suất chiếu
+        String[] columnNames = {"Showtime ID", "Movie Title", "Room ID", "Start Time"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        JTable table = new JTable(model);
+        table.setRowHeight(28);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        add(scrollPane, BorderLayout.CENTER);
+
+        loadShowtimes(model);
+    }
+
+    private JPanel buildMenuBar() {
+        JPanel menu = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+
+        JButton movieBtn = new JButton("Movie");
+        JButton showtimeBtn = new JButton("Showtime");
+        JButton bookingBtn = new JButton("Booking");
+        JButton searchBtn = new JButton("Search");
+        JButton exitBtn = new JButton("Exit");
+
+        menu.add(movieBtn);
+        menu.add(showtimeBtn);
+        menu.add(bookingBtn);
+        menu.add(searchBtn);
+        menu.add(exitBtn);
+
+        // 👉 Movie
+        movieBtn.addActionListener(e -> card.show(content, "guest_movie"));
+
+        // 👉 Showtime (toàn bộ suất chiếu)
+        showtimeBtn.addActionListener(e -> {
+            String panelName = "guest_showtime";
+            if (!panelExists(panelName)) {
+            	showtimepanel stPanel = new showtimepanel(conn, card, content,currentGuest, bookingDao);
+                content.add(stPanel, panelName);
+            }
+            card.show(content, panelName);
+        });
+
+        // 👉 Booking (lịch sử đặt vé của guest)
+        bookingBtn.addActionListener(e -> {
+            String panelName = "guest_booking_" + currentGuest.getGuestid();
+            if (!panelExists(panelName)) {
+            	bookingpanel bPanel = new bookingpanel(conn, card, content, currentGuest, bookingDao);
+                content.add(bPanel, panelName);
+            }
+            card.show(content, panelName);
+        });
+
+        // 👉 Search
+        searchBtn.addActionListener(e -> {
+            String panelName = "guest_search";
+            if (!panelExists(panelName)) {
+                searchpanel sPanel = new searchpanel(conn, card, content, currentGuest, bookingDao);
+                content.add(sPanel, panelName);
+            }
+            card.show(content, panelName);
+        });
+
+        // 👉 Exit
+        exitBtn.addActionListener(e -> card.show(content, "welcome"));
+
+        return menu;
+    }
+
+    // Hàm tiện ích kiểm tra panel đã tồn tại chưa
+    private boolean panelExists(String name) {
+        for (Component comp : content.getComponents()) {
+            if (name.equals(content.getLayout().toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    // 👉 Load danh sách suất chiếu từ SQL
+    private void loadShowtimes(DefaultTableModel model) {
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "SELECT s.showtimeid, m.title, s.roomid, s.starttime " +
+                "FROM showtime s JOIN movie m ON s.movieid = m.movieid")) {
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Object[] row = {
+                    rs.getInt("showtimeid"),
+                    rs.getString("title"),
+                    rs.getInt("roomid"),
+                    rs.getTimestamp("starttime")
+                };
+                model.addRow(row);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "❌ Lỗi SQL khi load suất chiếu: " + ex.getMessage());
+        }
+    }
+}
