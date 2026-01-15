@@ -114,7 +114,7 @@ public class moviemanagementpanel extends JPanel {
         exitBtn.setMaximumSize(buttonSize);
         exitBtn.setPreferredSize(buttonSize);
         exitBtn.setForeground(Color.RED); // chữ đỏ
-        exitBtn.addActionListener(e -> System.exit(0));
+        exitBtn.addActionListener(e -> showCard("welcome"));
         menuPanel.add(exitBtn);
 
         return menuPanel;
