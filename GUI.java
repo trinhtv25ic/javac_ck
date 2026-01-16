@@ -74,15 +74,13 @@ public class GUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        String url = "jdbc:sqlserver://localhost\\SQLEXPRESS:1433;databaseName=quanli;encrypt=true;trustServerCertificate=true";
-        String username = "sa";
-        String password = "123456789";
-        try {
-            Connection conn = DriverManager.getConnection(url, username, password);
+        Connection conn = DBConnection.getConnection();
+
+        if (conn != null) {
             System.out.println("✅ Kết nối SQL Server thành công!");
             new GUI("Cinema Ticket Management System", conn);
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } else {
+            System.out.println("❌ Không kết nối được SQL Server");
         }
     }
 }
